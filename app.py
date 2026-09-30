@@ -19,6 +19,7 @@ from utils.expense_utils import (
     get_available_months,
     get_expenses_for_month,
 )
+from utils.auth_utils import register_user, login_user
 
 # 1. Basic page settings
 st.set_page_config(page_title="Smart Expense Tracker", page_icon="💰")
@@ -27,14 +28,73 @@ st.set_page_config(page_title="Smart Expense Tracker", page_icon="💰")
 st.title("💰 Smart Expense Tracker")
 st.write("Track your daily spending in a simple way.")
 
-# 3. Menu on the left side
+# 3. Remember whether someone is logged in (sticky note)
+if "logged_in" not in st.session_state:
+    st.session_state["logged_in"] = False
+    st.session_state["username"] = ""
+    st.session_state["full_name"] = ""
+
+# 4. If nobody is logged in, show Login / Register and STOP here
+if not st.session_state["logged_in"]:
+    st.subheader("Please login or register to continue")
+    login_tab, register_tab = st.tabs(["🔑 Login", "📝 Register"])
+
+    # ---------- Login ----------
+    with login_tab:
+        with st.form("login_form"):
+            login_username = st.text_input("Username")
+            login_password = st.text_input("Password", type="password")
+            login_clicked = st.form_submit_button("Login")
+
+        if login_clicked:
+            ok, result = login_user(login_username, login_password)
+            if ok:
+                st.session_state["logged_in"] = True
+                st.session_state["username"] = login_username.strip().lower()
+                st.session_state["full_name"] = result
+                st.rerun()
+            else:
+                st.error(result)
+
+    # ---------- Register ----------
+    with register_tab:
+        with st.form("register_form"):
+            reg_full_name = st.text_input("Full name")
+            reg_username = st.text_input("Choose a username")
+            reg_password = st.text_input("Choose a password (min 6 characters)", type="password")
+            reg_confirm = st.text_input("Confirm password", type="password")
+            register_clicked = st.form_submit_button("Register")
+
+        if register_clicked:
+            if reg_password != reg_confirm:
+                st.error("Passwords do not match.")
+            else:
+                ok, message = register_user(reg_username, reg_full_name, reg_password)
+                if ok:
+                    st.success(message)
+                else:
+                    st.error(message)
+
+    st.stop()   # nothing below this line is shown until the user logs in
+
+# ------------------------------------------------------------
+# From here on, the user IS logged in
+# ------------------------------------------------------------
+username = st.session_state["username"]
+
+# 5. Menu on the left side
+st.sidebar.write(f"👤 Logged in as **{st.session_state['full_name']}**")
+if st.sidebar.button("Logout"):
+    st.session_state.clear()
+    st.rerun()
+
 st.sidebar.title("Menu")
 page = st.sidebar.radio(
     "Go to",
     ["Add Expense", "View Expenses", "Dashboard", "Monthly Summary"]
 )
 
-# 4. Show content depending on the menu choice
+# 6. Show content depending on the menu choice
 if page == "Add Expense":
     st.header("Add Expense")
 
@@ -55,12 +115,12 @@ if page == "Add Expense":
         elif amount <= 0:
             st.error("Amount must be greater than 0.")
         else:
-            save_expense(expense_date, name.strip(), category, amount, payment_method)
+            save_expense(username, expense_date, name.strip(), category, amount, payment_method)
             st.success("Expense added successfully! ✅")
 
     # Small preview: last 5 expenses
     st.subheader("Last 5 expenses")
-    all_expenses = load_expenses()
+    all_expenses = load_expenses(username)
     if all_expenses.empty:
         st.info("No expenses yet. Add your first one above!")
     else:
@@ -74,7 +134,7 @@ elif page == "View Expenses":
         st.success(st.session_state["message"])
         del st.session_state["message"]
 
-    expenses = load_expenses()
+    expenses = load_expenses(username)
 
     if expenses.empty:
         st.info("No expenses yet. Go to 'Add Expense' to add one.")
@@ -163,7 +223,7 @@ elif page == "View Expenses":
                 elif new_amount <= 0:
                     st.error("Amount must be greater than 0.")
                 else:
-                    update_expense(chosen, new_date, new_name.strip(), new_category, new_amount, new_payment)
+                    update_expense(username, chosen, new_date, new_name.strip(), new_category, new_amount, new_payment)
                     st.session_state["message"] = "Expense updated successfully! ✅"
                     st.rerun()
 
@@ -172,7 +232,7 @@ elif page == "View Expenses":
             sure = st.checkbox("Yes, I am sure I want to delete this expense", key=f"sure_{chosen}")
             if st.button("🗑️ Delete Expense"):
                 if sure:
-                    delete_expense(chosen)
+                    delete_expense(username, chosen)
                     st.session_state["message"] = "Expense deleted successfully! 🗑️"
                     st.rerun()
                 else:
@@ -181,7 +241,7 @@ elif page == "View Expenses":
 elif page == "Dashboard":
     st.header("Dashboard")
 
-    expenses = load_expenses()
+    expenses = load_expenses(username)
 
     if expenses.empty:
         st.info("No expenses yet. Add some expenses to see the dashboard.")
@@ -209,7 +269,7 @@ elif page == "Dashboard":
 elif page == "Monthly Summary":
     st.header("Monthly Summary")
 
-    expenses = load_expenses()
+    expenses = load_expenses(username)
 
     if expenses.empty:
         st.info("No expenses yet. Add some expenses to see the summary.")
