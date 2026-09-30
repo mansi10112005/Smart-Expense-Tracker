@@ -48,3 +48,18 @@ def save_expense(date, name, category, amount, payment_method):
     # 3. Join old + new, then write everything back to the file
     df = pd.concat([df, new_row], ignore_index=True)
     df.to_csv(FILE_PATH, index=False)
+
+
+def update_expense(row_id, date, name, category, amount, payment_method):
+    """Change the values of ONE existing expense (found by its Row ID)."""
+    df = load_expenses()
+    df.loc[row_id, COLUMNS] = [str(date), name, category, amount, payment_method]
+    df.to_csv(FILE_PATH, index=False)
+
+
+def delete_expense(row_id):
+    """Remove ONE expense (found by its Row ID) from the CSV file."""
+    df = load_expenses()
+    df = df.drop(index=row_id)          # remove that row
+    df = df.reset_index(drop=True)      # renumber rows as 0, 1, 2...
+    df.to_csv(FILE_PATH, index=False)
