@@ -2,4 +2,7 @@ __pycache__/
 *.pyc
 .venv/
 .env
+
+# Private data: created when the app runs
 data/users.csv
+data/expenses_*.csv
