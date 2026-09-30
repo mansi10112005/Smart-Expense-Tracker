@@ -11,6 +11,9 @@ from utils.expense_utils import (
     save_expense,
     update_expense,
     delete_expense,
+    get_total_expenses,
+    get_category_totals,
+    get_monthly_totals,
 )
 
 # 1. Basic page settings
@@ -146,4 +149,28 @@ elif page == "View Expenses":
 
 elif page == "Dashboard":
     st.header("Dashboard")
-    st.info("Totals and charts will come here (Step 7).")
+
+    expenses = load_expenses()
+
+    if expenses.empty:
+        st.info("No expenses yet. Add some expenses to see the dashboard.")
+    else:
+        # ---------- Two number cards ----------
+        total = get_total_expenses(expenses)
+        count = len(expenses)
+
+        col1, col2 = st.columns(2)
+        col1.metric("Total Expenses", f"₹{total:,.2f}")
+        col2.metric("Number of Expenses", count)
+
+        # ---------- Category-wise expenses ----------
+        st.subheader("Category-wise expenses")
+        category_totals = get_category_totals(expenses)
+        st.dataframe(category_totals)
+        st.bar_chart(category_totals)
+
+        # ---------- Monthly expenses ----------
+        st.subheader("Monthly expenses")
+        monthly_totals = get_monthly_totals(expenses)
+        st.dataframe(monthly_totals)
+        st.bar_chart(monthly_totals)

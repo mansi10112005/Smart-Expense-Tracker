@@ -63,3 +63,20 @@ def delete_expense(row_id):
     df = df.drop(index=row_id)          # remove that row
     df = df.reset_index(drop=True)      # renumber rows as 0, 1, 2...
     df.to_csv(FILE_PATH, index=False)
+
+
+def get_total_expenses(df):
+    """Add up all the amounts."""
+    return df["Amount"].sum()
+
+
+def get_category_totals(df):
+    """Make one pile per category and add up each pile."""
+    return df.groupby("Category")["Amount"].sum()
+
+
+def get_monthly_totals(df):
+    """Make one pile per month (like 2026-09) and add up each pile."""
+    dates = pd.to_datetime(df["Date"])
+    months = dates.dt.strftime("%Y-%m")
+    return df.groupby(months)["Amount"].sum()
