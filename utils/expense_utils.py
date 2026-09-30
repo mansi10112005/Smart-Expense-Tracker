@@ -80,3 +80,34 @@ def get_monthly_totals(df):
     dates = pd.to_datetime(df["Date"])
     months = dates.dt.strftime("%Y-%m")
     return df.groupby(months)["Amount"].sum()
+
+
+def filter_expenses(df, start_date, end_date, category, payment_method):
+    """Keep only the rows that match the chosen filters."""
+    result = df.copy()
+
+    # 1. Date filter: keep rows between start_date and end_date
+    dates = pd.to_datetime(result["Date"]).dt.date
+    result = result[(dates >= start_date) & (dates <= end_date)]
+
+    # 2. Category filter (skip if the user chose "All")
+    if category != "All":
+        result = result[result["Category"] == category]
+
+    # 3. Payment method filter (skip if the user chose "All")
+    if payment_method != "All":
+        result = result[result["Payment Method"] == payment_method]
+
+    return result
+
+
+def get_available_months(df):
+    """Return the months that have expenses, newest first (like 2026-09)."""
+    months = pd.to_datetime(df["Date"]).dt.strftime("%Y-%m")
+    return sorted(months.unique(), reverse=True)
+
+
+def get_expenses_for_month(df, month):
+    """Keep only the rows that belong to ONE month (like 2026-09)."""
+    months = pd.to_datetime(df["Date"]).dt.strftime("%Y-%m")
+    return df[months == month]
